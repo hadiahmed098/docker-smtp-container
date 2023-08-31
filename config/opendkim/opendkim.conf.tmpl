@@ -1,0 +1,37 @@
+Syslog			yes
+SyslogSuccess		yes
+
+# Common signing and verification parameters. The "From" header is
+# oversigned, because it is often the identity key used by reputation systems
+# and thus somewhat security sensitive.
+Canonicalization	relaxed/simple
+Mode				sv
+OversignHeaders		From
+
+# Tables of domains to sign, along with their keys.
+SigningTable	refile:/etc/opendkim/SigningTable
+KeyTable		/etc/opendkim/KeyTable
+
+# OpenDKIM runs as user "opendkim". A umask of 007 is required when
+# using a local socket with MTAs that access the socket as a non-privileged
+# user.
+UserID			opendkim
+UMask			007
+
+# Socket for the MTA connection.
+Socket			local:/run/opendkim/opendkim.sock
+
+PidFile			/run/opendkim/opendkim.pid
+
+# Hosts for which to sign rather than verify.
+InternalHosts		refile:/etc/opendkim/TrustedHosts
+ExternalIgnoreList	refile:/etc/opendkim/TrustedHosts
+
+# Make sure a DKIM header gets added, no matter what
+AlwaysAddARHeader true
+
+# Mark our verifications with this header
+AuthservID  {{ DOMAIN_NAME }}
+
+# Make sure our signature is the freshest
+RemoveOldSignatures		true

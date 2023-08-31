@@ -1,0 +1,137 @@
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+biff = no
+
+maillog_file=/dev/stdout
+
+# appending .domain is the MUA's job.
+append_dot_mydomain = no
+
+readme_directory = no
+
+compatibility_level = 3.6
+
+# === TLS parameters
+smtpd_tls_security_level={{ TLS_SECURITY_LEVEL }}
+smtp_tls_CApath=/etc/ssl/certs
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+smtpd_tls_cert_file={{ TLS_CERT_FILE }}
+smtpd_tls_key_file={{ TLS_KEY_FILE }}
+
+# === "root" domains
+mydomain = {{ DOMAIN_NAME }}
+myhostname = {{ HOST_NAME }}
+myorigin = {{ ORIGIN_NAME }}
+
+# === Only accept mail for these domains
+mydestination = $myhostname, $myorigin, $mydomain, localhost, localdomain
+
+# === Only accept outgoing mail from these IPs
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.0.0.0/8 192.168.0.0/16 172.16.0.0/12
+
+# Harden the server against some common attacks
+mailbox_size_limit = 0
+recipient_delimiter = +
+unknown_local_recipient_reject_code = 550
+owner_request_special = no
+inet_interfaces = all
+inet_protocols = all
+disable_vrfy_command = yes
+smtpd_helo_required = yes
+
+# === Setup our restriction policies for smtp ===
+#      options are in order of Postfix's evaluation of them
+
+# - allow all client connections by default
+smtpd_client_restrictions =
+   permit
+
+#  - reject HELO/EHLO domains that are broke
+smtpd_helo_restrictions =
+   reject_non_fqdn_helo_hostname,
+   reject_invalid_helo_hostname,
+   permit
+
+#  - reject bad MAIL_FROM: domains + reject domains that can't accept mail (if Postfix is not final destination)
+smtpd_sender_restrictions =
+   reject_unknown_sender_domain,
+   reject_non_fqdn_sender,
+   permit
+
+#  - reject all mail not destined for this server
+smtpd_relay_restrictions =
+   reject_unknown_recipient_domain,
+   reject_non_fqdn_recipient,
+   reject_unauth_destination
+
+#  - reject all mail not destined for this server (and verify SPF)
+smtpd_recipient_restrictions =
+   reject_unauth_destination,
+   check_policy_service unix:private/policyd-spf
+
+# === Setup our restriction policies for submission ===
+#      options are in order of Postfix's evaluation of them
+
+# - allow only authenticated clients
+mua_client_restrictions =
+   permit_sasl_authenticated,
+   permit_mynetworks,
+   reject
+
+#  - reject HELO/EHLO domains that are broke
+mua_helo_restrictions =
+   reject_non_fqdn_helo_hostname,
+   reject_invalid_helo_hostname
+
+#  - reject bad sender domains or unauthenticated addresses
+mua_sender_restrictions =
+   reject_unknown_sender_domain,
+   reject_non_fqdn_sender,
+   permit_sasl_authenticated,
+   permit_mynetworks,
+   reject
+
+#  - accept only authenticated clients
+mua_relay_restrictions =
+   reject_non_fqdn_recipient,
+   reject_unknown_recipient_domain
+   permit_sasl_authenticated,
+   permit_mynetworks,
+   reject
+
+#  - allow all outgoing mail
+mua_recipient_restrictions =
+   permit
+
+# === Alias map definitions
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+
+{{?> MAILMAN_ENABLE }}
+# === Setup for Mailman
+transport_maps = regexp:{{ MAILMAN_TRANSPORT_FILE }}
+local_recipient_maps = $alias_maps regexp:{{ MAILMAN_TRANSPORT_FILE }}
+relay_domains = regexp:{{ MAILMAN_DOMAIN_FILE }}
+{{<?}}
+
+{{?> RELAY_ENABLE }}
+# === Allows us to relay email through an upstream provider
+relayhost = {{ RELAY_HOST }}:{{ RELAY_PORT }}
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_sasl_tls_security_options = noanonymous
+smtp_tls_security_level = encrypt
+header_size_limit = 4096000
+{{<?}}
+
+# === Poliyd-spf
+policyd-spf_time_limit = 3600
+
+# === smtp milters (OpenDKIM + OpenDMARC + SpamAssassin + ClamAV)
+milter_protocol = 6
+smtpd_milters = unix:/run/opendkim/opendkim.sock, unix:/run/opendmarc/opendmarc.sock unix:/var/spool/postfix/spamass/spamass.sock unix:/run/clamav/clamav-milter.sock
+non_smtpd_milters = $smtpd_milters
+milter_default_action = accept
+
+# === submission milters (OpemDKIM)
+mua_milters = unix:/run/opendkim/opendkim.sock

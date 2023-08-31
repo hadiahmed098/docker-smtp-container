@@ -1,0 +1,33 @@
+#   Add to the Subject header of spam e-mails
+rewrite_header Subject *****SPAM _SCORE_  *****
+report_contact the Infrastructure Lead
+report_hostname {{ DOMAIN_NAME }}
+
+#   Save spam messages as a message/rfc822 MIME attachment instead of
+#   modifying the original message
+report_safe 1
+report_safe_copy_headers Authentication-Results
+
+#   Set which networks or hosts are considered 'trusted' by your mail
+#   server
+trusted_networks 127.0.0.0/8 10.0.0.0/8 192.168.0.0/16 172.16.0.0/12
+
+#   Set the threshold at which a message is considered spam
+required_score 5.0
+
+#   Use Bayesian classifier
+use_bayes 1
+
+#   Bayesian classifier auto-learning
+bayes_auto_learn 1
+
+#   Whether to decode non- UTF-8 and non-ASCII textual parts and recode
+#   them to UTF-8 before the text is given over to rules processing.
+normalize_charset 1
+
+#   Some shortcircuiting, if the plugin is enabled
+ifplugin Mail::SpamAssassin::Plugin::Shortcircuit
+
+shortcircuit ALL_TRUSTED             on
+
+endif # Mail::SpamAssassin::Plugin::Shortcircuit

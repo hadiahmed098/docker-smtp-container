@@ -1,0 +1,41 @@
+
+#  Sets the "authserv-id" to use when generating the Authentication-Results:
+#  header field after verifying a message.
+AuthservID {{ DOMAIN_NAME }}
+
+#  Specifies the path to a file that should be created at process start
+#  containing the process ID.
+PidFile /run/opendmarc/opendmarc.pid
+
+#  Messages will be rejected if they fail the DMARC evaluation, or
+#  temp-failed if evaluation could not be completed.
+RejectFailures false
+
+#  Specifies the socket that should be established by the filter.
+Socket local:/run/opendmarc/opendmarc.sock
+
+#  Log via calls to syslog(3) any interesting activity.
+Syslog true
+
+#  "authserv-id" values to trust as relaying true
+#  upstream DKIM and SPF results.
+TrustedAuthservIDs {{ DOMAIN_NAME }}
+
+#  Requests a specific permissions mask to be used for file creation.
+UMask 0002
+
+
+#  Attempts to become the specified userid before starting operations.
+UserID opendmarc
+
+# Force emails to have proper SMTP headers
+RequiredHeaders true
+
+# Do a backup SPF check
+SPFSelfValidate true
+
+# Only check incoming mail
+IgnoreAuthenticatedClients true
+
+# Ignore all local domains
+IgnoreHosts /etc/opendmarc/IgnoreHosts
