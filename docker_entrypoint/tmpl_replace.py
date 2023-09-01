@@ -16,10 +16,21 @@ def _log(type:LogType, message:str):
 # ===== environment variable loaders
 # << add env variable definition here
 class EnvVariables(IntEnum):
-    HOST_NAME = auto()          # A FQDN that identifies the host, should be what reverse DNS will point to
-    DOMAIN_NAME = auto()        # Optional FQDN that resolves to this domain, defaults to $HOST_NAME
-    ORIGIN_NAME = auto()        # Optional FQDN that mail will say its from, defaults to $DOMAIN_NAME
-    RELAY_ENABLE = auto()       # Should the Postfix configuration include relay settings?
+    HOST_NAME = auto()                  # A FQDN that identifies the host, should be what reverse DNS will point to
+    DOMAIN_NAME = auto()                # Optional FQDN that resolves to this domain, defaults to $HOST_NAME
+    ORIGIN_NAME = auto()                # Optional FQDN that mail will say its from, defaults to $DOMAIN_NAME
+
+    TLS_SECURITY_LEVEL = auto()         # String with the Postfix TLS level ("man 5 postconf" for details)
+    TLS_CERT_FILE = auto()              # Path to a TLS certificate file in the container (can be empty)
+    TLS_KEY_FILE = auto()               # Path to a TLS private key file in the container (can be empty)
+
+    MAILMAN_ENABLE = auto()             # Should the Postfix configuration include LMTP settings for Mailman?
+    MAILMAN_TRANSPORT_FILE = auto()     # Path to a Postfix transport map file
+    MAILMAN_DOMAIN_FILE = auto()        # Path to a Postfix relay domains file
+
+    RELAY_ENABLE = auto()               # Should the Postfix configuration include relay settings?
+    RELAY_HOST = auto()                 # Hostname for the upstream relay ("man 5 postconf" for details on formatting)
+    RELAY_PORT = auto()                 # Port for the upstream relay
 
 EnvVariableDict = dict[EnvVariables, str]
 
@@ -90,13 +101,36 @@ env_variables_to_load:EnvVariableLoader = {
     EnvVariables.HOST_NAME    : None,
     EnvVariables.DOMAIN_NAME  : EnvVariables.HOST_NAME,
     EnvVariables.ORIGIN_NAME  : EnvVariables.DOMAIN_NAME,
-    EnvVariables.RELAY_ENABLE : "no"
+    EnvVariables.TLS_SECURITY_LEVEL : "none",
+    EnvVariables.TLS_CERT_FILE      : "",
+    EnvVariables.TLS_KEY_FILE       : "",
+    EnvVariables.MAILMAN_ENABLE         : "no",
+    EnvVariables.MAILMAN_TRANSPORT_FILE : "",
+    EnvVariables.MAILMAN_DOMAIN_FILE    : "",
+    EnvVariables.RELAY_ENABLE   : "no",
+    EnvVariables.RELAY_HOST     : "",
+    EnvVariables.RELAY_PORT     : "25"
 }
 
 # << add any conf templates to process here
 files_to_process:ConfigFiles = {
-    "config/opendkim/opendkim.conf": [_make_ConfigOption(EnvVariables.DOMAIN_NAME)],
-    "config/postfix/main.cf" : [_make_ConfigOptionConditional(EnvVariables.RELAY_ENABLE)]
+    "../config/opendkim/opendkim.conf": [_make_ConfigOption(EnvVariables.DOMAIN_NAME)],
+    "../config/opendmarc/opendmarc.conf" : [_make_ConfigOption(EnvVariables.DOMAIN_NAME)],
+    "../config/spamassassin/local.cf" : [_make_ConfigOption(EnvVariables.DOMAIN_NAME)],
+    "../config/postfix/main.cf" : [
+        _make_ConfigOptionConditional(EnvVariables.RELAY_ENABLE),
+        _make_ConfigOptionConditional(EnvVariables.MAILMAN_ENABLE),
+        _make_ConfigOption(EnvVariables.DOMAIN_NAME),
+        _make_ConfigOption(EnvVariables.HOST_NAME),
+        _make_ConfigOption(EnvVariables.ORIGIN_NAME),
+        _make_ConfigOption(EnvVariables.TLS_SECURITY_LEVEL),
+        _make_ConfigOption(EnvVariables.TLS_CERT_FILE),
+        _make_ConfigOption(EnvVariables.TLS_KEY_FILE),
+        _make_ConfigOption(EnvVariables.MAILMAN_TRANSPORT_FILE),
+        _make_ConfigOption(EnvVariables.MAILMAN_DOMAIN_FILE),
+        _make_ConfigOption(EnvVariables.RELAY_HOST),
+        _make_ConfigOption(EnvVariables.RELAY_PORT)
+    ]
 }
 
 # ===== main entry point
