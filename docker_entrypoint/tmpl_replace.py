@@ -19,6 +19,7 @@ class EnvVariables(IntEnum):
     HOST_NAME = auto()          # A FQDN that identifies the host, should be what reverse DNS will point to
     DOMAIN_NAME = auto()        # Optional FQDN that resolves to this domain, defaults to $HOST_NAME
     ORIGIN_NAME = auto()        # Optional FQDN that mail will say its from, defaults to $DOMAIN_NAME
+    RELAY_ENABLE = auto()       # Should the Postfix configuration include relay settings?
 
 EnvVariableDict = dict[EnvVariables, str]
 
@@ -63,7 +64,12 @@ def _replace_key(str_buffer:str, key:EnvVariables, value:str, conditional:bool) 
     if not conditional:
         return re.sub("{{\s*" + key.name + "\s*}}", value, str_buffer, 0, re.MULTILINE)
     else:
-        pass
+        regex_pattern_str = "{{\?>\s*" + key.name + "\s*}}(.*){{<\?}}"
+        regex_pattern = re.compile(regex_pattern_str, re.MULTILINE | re.DOTALL)
+        if value.lower() == "yes" or value.lower == "true":
+            return regex_pattern.sub(r"\1", str_buffer)
+        else:
+            return regex_pattern.sub(r"\n", str_buffer)
 
 def _process_conf_files(env_vars:EnvVariableDict, file_list:ConfigFiles):
     for conf_file in file_list.keys():
@@ -81,24 +87,26 @@ def _process_conf_files(env_vars:EnvVariableDict, file_list:ConfigFiles):
 
 # << add env variable loading instructions here (add the definiton above!)
 env_variables_to_load:EnvVariableLoader = {
-    EnvVariables.HOST_NAME : None,
-    EnvVariables.DOMAIN_NAME : EnvVariables.HOST_NAME,
-    EnvVariables.ORIGIN_NAME : EnvVariables.DOMAIN_NAME
+    EnvVariables.HOST_NAME    : None,
+    EnvVariables.DOMAIN_NAME  : EnvVariables.HOST_NAME,
+    EnvVariables.ORIGIN_NAME  : EnvVariables.DOMAIN_NAME,
+    EnvVariables.RELAY_ENABLE : "no"
 }
 
 # << add any conf templates to process here
 files_to_process:ConfigFiles = {
-    "config/opendkim/opendkim.conf": [_make_ConfigOption(EnvVariables.DOMAIN_NAME)]
+    "config/opendkim/opendkim.conf": [_make_ConfigOption(EnvVariables.DOMAIN_NAME)],
+    "config/postfix/main.cf" : [_make_ConfigOptionConditional(EnvVariables.RELAY_ENABLE)]
 }
 
 # ===== main entry point
 def main():
 
     # First load all required env variables
-    env_var_dict = _load_env_variables()
+    env_var_dict = _load_env_variables(env_variables_to_load)
 
     # Now go through the config options
-    _process_conf_files(env_var_dict)
+    _process_conf_files(env_var_dict, files_to_process)
 
 
 # name guard
