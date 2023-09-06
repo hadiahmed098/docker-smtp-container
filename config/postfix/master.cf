@@ -8,7 +8,7 @@
 # main daemon agents
 smtp      inet  n       -       n       -       -       smtpd
 submission inet n       -       n       -       -       smtpd
-  -o syslog_name=postfix/submission
+  -o syslog_name=postfix/$service_name
   -o smtpd_tls_security_level=encrypt
   -o smtpd_sasl_auth_enable=yes
   -o smtpd_tls_auth_only=yes
