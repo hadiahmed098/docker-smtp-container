@@ -15,6 +15,10 @@ mv /config/spamassassin/local.cf /etc/spamassassin/local.cf
 cat /config/postfix/aliases > /etc/aliases
 newaliases && echo "Updated alias definitions"
 
+# Update relay SASL password
+cat /config/postfix/sasl_passwd > /etc/postfix/sasl_passwd
+postmap /etc/postfix/sasl_passwd && echo "Updated relay SASL passwords"
+
 # Start all the services
 service syslog-ng start
 service opendkim start
