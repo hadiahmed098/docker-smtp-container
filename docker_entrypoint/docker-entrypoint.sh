@@ -24,6 +24,7 @@ service clamav-milter start
 service clamav-freshclam start
 service spamd start
 service spamass-milter start
+service postfix start
 
-# Start postfix and stay there
-#postfix start-fg
+# Monitor the log and stay there
+tail -f /var/log/mail.log
