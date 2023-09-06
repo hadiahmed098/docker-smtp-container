@@ -11,14 +11,17 @@ RUN echo "postfix postfix/mailname string localhost" | debconf-set-selections \
 
 # Install all our packages
 RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
-    postfix postfix-pcre clamav clamav-daemon clamav-milter spamassassin spamc spamass-milter postfix-policyd-spf-python opendkim opendkim-tools opendmarc libsasl2-modules sasl2-bin
+    postfix postfix-pcre clamav clamav-daemon clamav-milter spamassassin spamc spamd spamass-milter postfix-policyd-spf-python opendkim opendkim-tools opendmarc libsasl2-modules sasl2-bin syslog-ng
 
 # Copy over all non-template config files
 RUN mv /config/clamav/clamav-milter.conf /etc/clamav/clamav-milter.conf && \
     mv /config/policyd-spf/policyd-spf.conf /etc/postfix-policyd-spf-python/policyd-spf.conf && \
     mv /config/postfix/master.cf /etc/postfix/master.cf && \
     mv /config/spamassassin/spamassassin.default /etc/default/spamassassin && \
-    mv /config/spamassassin/spamass-milter.default /etc/default/spamass-milter
+    mv /config/spamassassin/spamd.default /etc/default/spamd && \
+    mv /config/spamassassin/spamass-milter.default /etc/default/spamass-milter && \
+    mv /config/syslog-ng/syslog-ng.conf /etc/syslog-ng/syslog-ng.conf && \
+    mv /config/syslog-ng/syslog-ng.default /etc/default/syslog-ng
 
 # Setup files and update some definitions if needed
 RUN chmod +x /docker_entrypoint/docker-entrypoint.sh && \
@@ -29,3 +32,5 @@ RUN chmod +x /docker_entrypoint/docker-entrypoint.sh && \
 
 EXPOSE 25 587
 #ENTRYPOINT ["/docker_entrypoint/docker-entrypoint.sh"]
+
+## Get milter logs and verify emails work

@@ -11,17 +11,19 @@ mv /config/opendmarc/opendmarc.conf /etc/opendmarc.conf
 mv /config/postfix/main.cf /etc/postfix/main.cf
 mv /config/spamassassin/local.cf /etc/spamassassin/local.cf
 
+# Update alias files
+cat /config/postfix/aliases > /etc/aliases
+newaliases && echo "Updated alias definitions"
+
 # Start all the services
+service syslog-ng start
 service opendkim start
 service opendmarc start
 service clamav-daemon start
 service clamav-milter start
 service clamav-freshclam start
+service spamd start
 service spamass-milter start
-
-# Update alias files
-cat /config/postfix/aliases > /etc/aliases
-newaliases && echo "Updated alias definitions"
 
 # Start postfix and stay there
 #postfix start-fg
